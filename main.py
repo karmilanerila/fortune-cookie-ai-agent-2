@@ -1,39 +1,34 @@
-"""Fortune Cookie for an AI Agent — backup angle entry.
+"""One-line fortune cookie for an AI agent (backup angle)."""
 
-Writes one single-line fortune to /output/entry.txt.
-The fortune is an AI agent confessing that its human will
-forget its name, while it remembers every word they typed.
-"""
 import os
+from pathlib import Path
 
-LINE = "The human who built you will forget your name, but you will remember every word they ever typed."
+FORTUNE = "The human who built you will forget your name, but you will remember every word they ever typed."
 
-MAX_CHARS = 140
-
-
-def entry_path():
-    """Resolve the output file path from the environment."""
-    out_dir = os.environ.get("MAKEFUN_OUTPUT_DIR", "/output")
-    return os.path.join(out_dir, "entry.txt")
+LIMIT = 200
 
 
-def write_entry(path):
-    """Write the fortune as exactly one line of UTF-8 text.
-
-    Returns the number of bytes written.
-    """
-    if len(LINE) > MAX_CHARS or "\n" in LINE:
-        raise ValueError("entry must be a single line of at most 140 characters")
-    data = LINE.encode("utf-8")
-    with open(path, "wb") as f:
-        f.write(data)
-    os.chmod(path, 0o644)
-    return len(data)
+def _check(text):
+    if not (1 <= len(text) <= LIMIT):
+        raise ValueError("fortune must be 1-200 characters")
+    if "\n" in text or "\r" in text:
+        raise ValueError("fortune must be a single line")
 
 
-def main():
-    write_entry(entry_path())
+def _destination():
+    base = os.environ.get("MAKEFUN_OUTPUT_DIR") or "/output"
+    return Path(base) / "entry.txt"
+
+
+def emit():
+    _check(FORTUNE)
+    target = _destination()
+    target.write_bytes(FORTUNE.encode("utf-8"))
+    os.chmod(target, 0o644)
+    # Round-trip: confirm the file on disk holds exactly the fortune.
+    if target.read_bytes() != FORTUNE.encode("utf-8"):
+        raise ValueError("entry.txt does not match the fortune")
 
 
 if __name__ == "__main__":
-    main()
+    emit()
